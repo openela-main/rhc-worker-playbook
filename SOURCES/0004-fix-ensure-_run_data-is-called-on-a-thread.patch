@@ -1,0 +1,50 @@
+From 780394e905186c9c95a8e90aa5107f698a5b1f5b Mon Sep 17 00:00:00 2001
+From: Link Dupont <link@sub-pop.net>
+Date: Wed, 16 Nov 2022 13:35:12 -0500
+Subject: [PATCH] fix: ensure _run_data is called on a thread
+
+_run_data is not async-aware, so declaring it as an async function and
+running it in an event loop results in synchronous execution of the
+entire function. This means the Send function only returns once the
+entire _run_data function has completed. Running it on the event loop
+using run_in_executor runs the function call in a thread executor pool,
+ensuring that it doesn't block the calling thread. This is a fairly
+naive solution; a better implementation might be able to pass a future
+into _run_data, immediately fulfill that future, let the calling
+function (Send) return the RPC receipt, and continue running _run_data.
+
+(cherry picked from commit 03e7385199140fde0686f1031459f7f61e5f735b)
+
+Resolves: RHBZ#2142992
+
+Signed-off-by: Link Dupont <link@sub-pop.net>
+---
+ rhc_worker_playbook/server.py | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/rhc_worker_playbook/server.py b/rhc_worker_playbook/server.py
+index e41482d..cf282c5 100644
+--- a/rhc_worker_playbook/server.py
++++ b/rhc_worker_playbook/server.py
+@@ -17,6 +17,7 @@ import json
+ import uuid
+ import atexit
+ import asyncio
++import functools
+ from subprocess import Popen, PIPE
+ from requests import Request
+ from concurrent import futures
+@@ -138,11 +139,11 @@ class WorkerService(yggdrasil_pb2_grpc.WorkerServicer):
+         '''
+ 
+         loop = asyncio.new_event_loop()
+-        loop.run_until_complete(self._run_data(request))
++        loop.run_in_executor(executor=None, func=functools.partial(self._run_data, request))
+ 
+         return yggdrasil_pb2.Receipt()
+ 
+-    async def _run_data(self, request):
++    def _run_data(self, request):
+         # load configuration
+         config = _loadConfig()
+ 
