@@ -1,0 +1,25 @@
+From 1f417d0241af6fd15697da55ed3f44c655567f7e Mon Sep 17 00:00:00 2001
+From: Jeremy Audet <audet.jeremy@pm.me>
+Date: Thu, 4 Aug 2022 17:38:51 -0400
+Subject: [PATCH] Do not busy-wait when playbook is running
+
+JIRA: RHELPLAN-130334
+Resolves: rhbz#2115848
+
+(cherry picked from commit 579a67fba5ea60543a72b118e5644206c6ba720b)
+---
+ rhc_worker_playbook/server.py | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/rhc_worker_playbook/server.py b/rhc_worker_playbook/server.py
+index 8fa393f..8e9826f 100644
+--- a/rhc_worker_playbook/server.py
++++ b/rhc_worker_playbook/server.py
+@@ -235,6 +235,7 @@ class WorkerService(yggdrasil_pb2_grpc.WorkerServicer):
+         elapsedTime = 0
+         startTime = time.time()
+         while runnerThread.is_alive():
++            time.sleep(1)
+             elapsedTime = time.time() - startTime
+             if elapsedTime >= response_interval:
+                 # hit the interval, post events
