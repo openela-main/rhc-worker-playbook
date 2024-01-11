@@ -1,10 +1,10 @@
-%define debug_package %{nil}
+%define _debugsource_template %{nil}
 %define community_general_version 4.4.0
 %define ansible_posix_version 1.3.0
 
 Name:       rhc-worker-playbook
 Version:    0.1.8
-Release:    4%{?dist}
+Release:    6%{?dist}
 Summary:    Python worker for Red Hat connector that launches Ansible Runner
 License:    GPLv2+
 URL:        https://github.com/redhatinsights/rhc-worker-playbook
@@ -37,7 +37,7 @@ BuildRequires: python3dist(cython)
 BuildRequires: gcc
 BuildRequires: gcc-c++
 
-ExclusiveArch: x86_64 s390x ppc64 ppc64le
+ExcludeArch:   i686
 
 %description
 Python-based worker for Red Hat connect, used to launch Ansible playbooks via Ansible Runner.
@@ -120,6 +120,12 @@ mkdir -p %{buildroot}%{_localstatedir}/log/rhc-worker-playbook/ansible/
 %doc
 
 %changelog
+* Wed Mar 22 2023 Link Dupont <link@redhat.com> 0.1.8-6
+- Enable stripping of debug symbols into a debuginfo package.
+
+* Fri Mar 03 2023 Link Dupont <link@redhat.com> 0.1.8-5
+- Drop ExclusiveArch, but exclude i686 (RHBZ#2178692)
+
 * Thu Oct 20 2022 Gael Chamoulaud <gchamoul@redhat.com> 0.1.8-4
 - Use thread.join(timeout) to avoid busy waiting and simplify interval event posting logic (rhbz#2115848)
 
