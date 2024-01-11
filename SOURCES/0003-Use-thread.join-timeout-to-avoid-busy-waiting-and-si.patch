@@ -1,0 +1,41 @@
+From 90efeb281ee1f78f6ac1d83b659397f4ec82c1c6 Mon Sep 17 00:00:00 2001
+From: Derek Horton <dehort@redhat.com>
+Date: Fri, 5 Aug 2022 15:02:37 -0500
+Subject: [PATCH] Use thread.join(timeout) to avoid busy waiting and simplify
+ interval event posting logic
+
+Resolves: rhbz#2104199
+
+(cherry picked from commit 478930cca7a8d4acf21aef0715e42052315cb24e)
+---
+ rhc_worker_playbook/server.py | 12 +++---------
+ 1 file changed, 3 insertions(+), 9 deletions(-)
+
+diff --git a/rhc_worker_playbook/server.py b/rhc_worker_playbook/server.py
+index 8e9826f..e41482d 100644
+--- a/rhc_worker_playbook/server.py
++++ b/rhc_worker_playbook/server.py
+@@ -231,20 +231,14 @@ class WorkerService(yggdrasil_pb2_grpc.WorkerServicer):
+             artifact_dir=RUNNER_ARTIFACTS_DIR,
+             rotate_artifacts=RUNNER_ROTATE_ARTIFACTS)
+ 
+-        # initialize elapsed counter
+-        elapsedTime = 0
+-        startTime = time.time()
++        # wait for the thread to finish
+         while runnerThread.is_alive():
+-            time.sleep(1)
+-            elapsedTime = time.time() - startTime
+-            if elapsedTime >= response_interval:
++            runnerThread.join(response_interval)
++            if runnerThread.is_alive():
+                 # hit the interval, post events
+                 _log("Hit the response interval. Posting current status...")
+                 returnedEvents = _composeDispatcherMessage(events, return_url, response_to)
+                 response = self.dispatcher.Send(returnedEvents)
+-                # reset interval timer
+-                elapsedTime = 0
+-                startTime = time.time()
+ 
+         if runner.status == 'failed':
+             # last event sould be the failure, find the reason
