@@ -1,0 +1,51 @@
+From 701885f0f7173f2b0ae113618d15c9f73e9522d2 Mon Sep 17 00:00:00 2001
+From: Link Dupont <link@sub-pop.net>
+Date: Wed, 5 May 2021 14:10:49 -0400
+Subject: [PATCH] fix: Execute playbook asynchronously
+
+Run the playbook code in a coroutine that's scheduled onto a new event loop. Return a protobuf.Receipt message in the WorkerService Send implementation.
+
+Resolves: rhbz#2020426
+
+(cherry picked from commit 332d28d1bb636a5dc8ff5ddf3da8359a9a78b297)
+Signed-off-by: Gael Chamoulaud (Strider) <gchamoul@redhat.com>
+---
+ rhc_worker_playbook/server.py | 10 +++++++---
+ 1 file changed, 7 insertions(+), 3 deletions(-)
+
+diff --git a/rhc_worker_playbook/server.py b/rhc_worker_playbook/server.py
+index 985ea98..8fa393f 100644
+--- a/rhc_worker_playbook/server.py
++++ b/rhc_worker_playbook/server.py
+@@ -16,6 +16,7 @@ import time
+ import json
+ import uuid
+ import atexit
++import asyncio
+ from subprocess import Popen, PIPE
+ from requests import Request
+ from concurrent import futures
+@@ -135,9 +136,13 @@ class WorkerService(yggdrasil_pb2_grpc.WorkerServicer):
+         '''
+         Act on messages sent to the WorkerService
+         '''
+-        # we have received it
+-        yggdrasil_pb2.Receipt()
+ 
++        loop = asyncio.new_event_loop()
++        loop.run_until_complete(self._run_data(request))
++
++        return yggdrasil_pb2.Receipt()
++
++    async def _run_data(self, request):
+         # load configuration
+         config = _loadConfig()
+ 
+@@ -256,7 +261,6 @@ class WorkerService(yggdrasil_pb2_grpc.WorkerServicer):
+         _log("Posting events...")
+         response = self.dispatcher.Send(returnedEvents)
+         _log("Post complete.")
+-        return
+ 
+ def serve():
+     # load config to get directive
