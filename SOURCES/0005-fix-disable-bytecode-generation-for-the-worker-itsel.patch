@@ -1,0 +1,27 @@
+From d6aba341091806c9d6eed23a32708b5187ba7084 Mon Sep 17 00:00:00 2001
+From: Pino Toscano <ptoscano@redhat.com>
+Date: Mon, 4 Dec 2023 18:29:52 +0100
+Subject: [PATCH 5/5] fix: disable bytecode generation for the worker itself
+
+Setting sys.dont_write_bytecode to True makes Python not write '.pyc'
+cache files, or '__pycache__' directories. This way there will be no
+local files written during the execution of the worker.
+---
+ scripts/rhc-worker-playbook.worker | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/scripts/rhc-worker-playbook.worker b/scripts/rhc-worker-playbook.worker
+index cdd944d..c5cc335 100644
+--- a/scripts/rhc-worker-playbook.worker
++++ b/scripts/rhc-worker-playbook.worker
+@@ -1,6 +1,7 @@
+ #!/usr/libexec/platform-python
+ import sys
+ sys.path.insert(1, "/usr/lib/python3.6/site-packages")
++sys.dont_write_bytecode = True
+ from rhc_worker_playbook import server
+ 
+ if __name__ == '__main__':
+-- 
+2.43.0
+

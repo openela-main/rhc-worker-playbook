@@ -1,0 +1,28 @@
+From b2d7a5b39760646839a48417c3fe5c717b5df699 Mon Sep 17 00:00:00 2001
+From: Pino Toscano <ptoscano@redhat.com>
+Date: Tue, 31 Oct 2023 15:04:05 +0100
+Subject: [PATCH 4/5] fix: export PYTHONDONTWRITEBYTECODE=1 when running
+ playbooks
+
+PYTHONDONTWRITEBYTECODE=1 makes Python not write '.pyc' cache files, or
+'__pycache__' directories. This way there will be no local files written
+during the execution of a playbook.
+---
+ rhc_worker_playbook/server.py | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/rhc_worker_playbook/server.py b/rhc_worker_playbook/server.py
+index 89683a6..ce75c27 100644
+--- a/rhc_worker_playbook/server.py
++++ b/rhc_worker_playbook/server.py
+@@ -233,6 +233,7 @@ class WorkerService(yggdrasil_pb2_grpc.WorkerServicer):
+         runnerThread, runner = ansible_runner.interface.run_async(
+             playbook=playbook,
+             envvars={"PYTHONPATH": WORKER_LIB_DIR,
++                     "PYTHONDONTWRITEBYTECODE": "1",
+                      "PATH": BASIC_PATH,
+                      "ANSIBLE_COLLECTIONS_PATHS": ANSIBLE_COLLECTIONS_PATHS},
+             event_handler=events.addEvent,
+-- 
+2.43.0
+

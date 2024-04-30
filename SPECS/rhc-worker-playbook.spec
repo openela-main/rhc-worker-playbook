@@ -4,7 +4,7 @@
 
 Name:       rhc-worker-playbook
 Version:    0.1.8
-Release:    6%{?dist}
+Release:    7%{?dist}
 Summary:    Python worker for Red Hat connector that launches Ansible Runner
 License:    GPLv2+
 URL:        https://github.com/redhatinsights/rhc-worker-playbook
@@ -18,6 +18,8 @@ Source2:    https://github.com/ansible-collections/ansible.posix/archive/%{ansib
 Patch0001: 0001-fix-Execute-playbook-asynchronously.patch
 Patch0002: 0002-Do-not-busy-wait-when-playbook-is-running.patch
 Patch0003: 0003-Use-thread.join-timeout-to-avoid-busy-waiting-and-si.patch
+Patch0004: 0004-fix-export-PYTHONDONTWRITEBYTECODE-1-when-running-pl.patch
+Patch0005: 0005-fix-disable-bytecode-generation-for-the-worker-itsel.patch
 
 %{?__python3:Requires: %{__python3}}
 Requires: insights-client
@@ -48,6 +50,8 @@ Python-based worker for Red Hat connect, used to launch Ansible playbooks via An
 %patch0001 -p1
 %patch0002 -p1
 %patch0003 -p1
+%patch0004 -p1
+%patch0005 -p1
 
 pushd community.general-%{community_general_version}
 rm -vr .github .azure-pipelines
@@ -120,6 +124,9 @@ mkdir -p %{buildroot}%{_localstatedir}/log/rhc-worker-playbook/ansible/
 %doc
 
 %changelog
+* Fri Dec 08 2023 Pino Toscano <ptoscano@redhat.com> 0.1.8-7
+- Avoid writing Python bytecode (RHEL-14277)
+
 * Wed Mar 22 2023 Link Dupont <link@redhat.com> 0.1.8-6
 - Enable stripping of debug symbols into a debuginfo package.
 
