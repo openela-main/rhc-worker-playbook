@@ -3,23 +3,14 @@
 %define ansible_posix_version 1.3.0
 
 Name:       rhc-worker-playbook
-Version:    0.1.8
-Release:    7%{?dist}
+Version:    0.1.10
+Release:    1%{?dist}
 Summary:    Python worker for Red Hat connector that launches Ansible Runner
 License:    GPLv2+
 URL:        https://github.com/redhatinsights/rhc-worker-playbook
-Source:     rhc-worker-playbook-0.1.8.tar.gz
+Source0:    https://github.com/RedHatInsights/rhc-worker-playbook/releases/download/%{version}/%{name}-%{version}.tar.gz
 Source1:    https://github.com/ansible-collections/community.general/archive/%{community_general_version}/ansible-collection-community-general-%{community_general_version}.tar.gz
 Source2:    https://github.com/ansible-collections/ansible.posix/archive/%{ansible_posix_version}/ansible-collection-ansible-posix-%{ansible_posix_version}.tar.gz
-
-#
-# patches_ignore=DROP-IN-RPM
-# patches_base=8ddc5ccfc97290a021b4c4de673b92fedc38cbfb
-Patch0001: 0001-fix-Execute-playbook-asynchronously.patch
-Patch0002: 0002-Do-not-busy-wait-when-playbook-is-running.patch
-Patch0003: 0003-Use-thread.join-timeout-to-avoid-busy-waiting-and-si.patch
-Patch0004: 0004-fix-export-PYTHONDONTWRITEBYTECODE-1-when-running-pl.patch
-Patch0005: 0005-fix-disable-bytecode-generation-for-the-worker-itsel.patch
 
 %{?__python3:Requires: %{__python3}}
 Requires: insights-client
@@ -46,12 +37,6 @@ Python-based worker for Red Hat connect, used to launch Ansible playbooks via An
 
 %prep
 %setup -q -a1 -a2 -n %{name}-%{version}
-
-%patch0001 -p1
-%patch0002 -p1
-%patch0003 -p1
-%patch0004 -p1
-%patch0005 -p1
 
 pushd community.general-%{community_general_version}
 rm -vr .github .azure-pipelines
@@ -81,8 +66,7 @@ export GRPC_PYTHON_DISABLE_LIBC_COMPATIBILITY=True
 
 %define _lto_cflags %{nil}
 %set_build_flags
-%{__make} PREFIX=%{_prefix} LIBDIR=%{_libdir} CONFIG_DIR=%{rhc_config_dir} PYTHON_PKGDIR=%{python3_sitelib} installed-lib-dir
-%{make_build} build
+%{make_build} PREFIX=%{_prefix} LIBDIR=%{_libdir} CONFIG_DIR=%{rhc_config_dir} PYTHON_PKGDIR=%{python3_sitelib} build
 
 # Building the Ansible Collections
 pushd community.general-%{community_general_version}
@@ -124,6 +108,9 @@ mkdir -p %{buildroot}%{_localstatedir}/log/rhc-worker-playbook/ansible/
 %doc
 
 %changelog
+* Fri Nov 15 2024 Joe VLcek <jvlcek@redhat.com> - 0.1.10-1
+- Update rhc-worker-playbook to 0.1.10 (RHEL-65237 RHEL-65240 RHEL-65243 RHEL-65246 RHEL-59702)
+
 * Fri Dec 08 2023 Pino Toscano <ptoscano@redhat.com> 0.1.8-7
 - Avoid writing Python bytecode (RHEL-14277)
 
