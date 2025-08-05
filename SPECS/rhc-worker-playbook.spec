@@ -3,7 +3,7 @@
 %define ansible_posix_version 1.3.0
 
 Name:       rhc-worker-playbook
-Version:    0.1.10
+Version:    0.1.11
 Release:    1%{?dist}
 Summary:    Python worker for Red Hat connector that launches Ansible Runner
 License:    GPLv2+
@@ -108,8 +108,11 @@ mkdir -p %{buildroot}%{_localstatedir}/log/rhc-worker-playbook/ansible/
 %doc
 
 %changelog
+* Wed Apr 23 2025 Joe VLcek <jvlcek@redhat.com> - 0.1.11-1
+- Update rhc-worker-playbook to 0.1.11 (RHEL-85006)
+
 * Fri Nov 15 2024 Joe VLcek <jvlcek@redhat.com> - 0.1.10-1
-- Update rhc-worker-playbook to 0.1.10 (RHEL-65237 RHEL-65240 RHEL-65243 RHEL-65246 RHEL-59702)
+- Update rhc-worker-playbook to 0.1.10 (RHEL-65236 RHEL-65239 RHEL-65242 RHEL-65245 RHEL-59702)
 
 * Fri Dec 08 2023 Pino Toscano <ptoscano@redhat.com> 0.1.8-7
 - Avoid writing Python bytecode (RHEL-14277)
