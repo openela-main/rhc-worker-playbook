@@ -1,32 +1,51 @@
+%{?python_disable_dependency_generator}
 %define _debugsource_template %{nil}
 %define community_general_version 4.4.0
 %define ansible_posix_version 1.3.0
 
 Name:       rhc-worker-playbook
-Version:    0.1.11
+Version:    0.1.14
 Release:    1%{?dist}
 Summary:    Python worker for Red Hat connector that launches Ansible Runner
 License:    GPLv2+
 URL:        https://github.com/redhatinsights/rhc-worker-playbook
-Source0:    https://github.com/RedHatInsights/rhc-worker-playbook/releases/download/%{version}/%{name}-%{version}.tar.gz
+Source0:    https://github.com/RedHatInsights/rhc-worker-playbook/releases/download/v%{version}/%{name}-%{version}.tar.gz
 Source1:    https://github.com/ansible-collections/community.general/archive/%{community_general_version}/ansible-collection-community-general-%{community_general_version}.tar.gz
 Source2:    https://github.com/ansible-collections/ansible.posix/archive/%{ansible_posix_version}/ansible-collection-ansible-posix-%{ansible_posix_version}.tar.gz
+# ansible-runner dependencies
+Source3:    https://files.pythonhosted.org/packages/py3/a/ansible_runner/ansible_runner-2.1.1-py3-none-any.whl
+Source4:    https://files.pythonhosted.org/packages/py3/p/python_daemon/python_daemon-3.1.2-py3-none-any.whl
+Source5:    https://files.pythonhosted.org/packages/py2.py3/l/lockfile/lockfile-0.12.2-py2.py3-none-any.whl
+# grpcio/protobuf sources
+Source6:   %pypi_source grpcio 1.55.3
+Source7:   %pypi_source grpcio-tools 1.48.2
+Source8:   %pypi_source protobuf 3.20.0
 
-%{?__python3:Requires: %{__python3}}
-Requires: insights-client
-Requires: python3dist(requests)
-Requires: python3dist(pyyaml)
+Requires: python3.9
+Requires: rhc
+Requires: rhc-playbook-verifier
 Requires: ansible-core
-BuildRequires: rhc
-BuildRequires: pkgconfig
-BuildRequires: python3-devel
-BuildRequires: python3dist(pip)
-BuildRequires: python3dist(wheel)
-BuildRequires: python3dist(setuptools)
+Requires: python3.9dist(setuptools)
+Requires: python3.9dist(requests)
+Requires: python3.9dist(toml)
+Requires: python3.9dist(jsonschema)
+# ansible-runner dependencies
+Requires: python3.9dist(pexpect)
+Requires: python3.9dist(pyyaml)
+Requires: python3.9dist(six)
+BuildRequires: make
+BuildRequires: python3.9
+BuildRequires: python3.9-devel
+BuildRequires: python3.9dist(pip)
+BuildRequires: python3.9dist(wheel)
+BuildRequires: python3.9dist(setuptools)
+BuildRequires: python3.9dist(pexpect)
+BuildRequires: python3.9dist(pyyaml)
+BuildRequires: python3.9dist(six)
 BuildRequires: openssl-devel
 BuildRequires: c-ares-devel
 BuildRequires: zlib-devel
-BuildRequires: python3dist(cython)
+BuildRequires: python3.9dist(cython)
 BuildRequires: gcc
 BuildRequires: gcc-c++
 
@@ -54,19 +73,24 @@ find -type f -name '.gitignore' -print -delete
 popd
 
 %build
+%define _lto_cflags %{nil}
+%set_build_flags
 export GRPC_PYTHON_BUILD_WITH_CYTHON=True
 export GRPC_PYTHON_BUILD_SYSTEM_OPENSSL=True
 export GRPC_PYTHON_BUILD_SYSTEM_ZLIB=True
 export GRPC_PYTHON_BUILD_SYSTEM_CARES=True
 export GRPC_PYTHON_DISABLE_LIBC_COMPATIBILITY=True
-# TODO(gchamoul): Remove workaround
-#  once https://bugzilla.redhat.com/show_bug.cgi?id=2056959 is fixed
-#%define rhc_config_dir $(pkg-config rhc --variable workerconfdir)
-%define rhc_config_dir /etc/rhc/workers
 
-%define _lto_cflags %{nil}
-%set_build_flags
-%{make_build} PREFIX=%{_prefix} LIBDIR=%{_libdir} CONFIG_DIR=%{rhc_config_dir} PYTHON_PKGDIR=%{python3_sitelib} build
+# remove and remake the constants file for the correct LIBDIR
+rm -f rhc_worker_playbook/constants.py
+%{__make} LIBDIR=%{_libdir} rhc_worker_playbook/constants.py
+mkdir wheels
+
+# add ansible-runner and its dependencies
+cp %{SOURCE3} %{SOURCE4} %{SOURCE5} wheels
+# build rhc-worker-playbook wheel and build grpcio, protobuf from source
+%{python3} -m pip wheel --no-deps --wheel-dir=wheels . %{SOURCE6} %{SOURCE7} %{SOURCE8}
+touch wheels
 
 # Building the Ansible Collections
 pushd community.general-%{community_general_version}
@@ -78,7 +102,10 @@ tar -cf %{_tmppath}/ansible-posix-%{ansible_posix_version}.tar.gz .
 popd
 
 %install
-%{make_install} PREFIX=%{_prefix} LIBDIR=%{_libdir} CONFIG_DIR=%{rhc_config_dir} PYTHON_PKGDIR=%{python3_sitelib}
+%{make_install} PREFIX=%{_prefix} LIBDIR=%{_libdir} DEPENDENCY_WHEELS="wheels/ansible* wheels/grpcio* wheels/protobuf* wheels/python_daemon* wheels/lockfile*" PIP_INSTALL_EXTRA_ARGS="--no-deps"
+
+# confirm Python dependencies are OK
+PYTHONPATH=%{buildroot}%{_libdir}/rhc-worker-playbook %{python3} -m pip check
 
 # Installing the Ansible Collections
 mkdir -p %{buildroot}%{_datadir}/rhc-worker-playbook/ansible/collections/ansible_collections/community/general
@@ -95,11 +122,10 @@ popd
 # Creating the logs directory for ansible-runner
 mkdir -p %{buildroot}%{_localstatedir}/log/rhc-worker-playbook/ansible/
 
-
 %files
 %{_libexecdir}/rhc/rhc-worker-playbook.worker
 %{python3_sitelib}/rhc_worker_playbook/
-%{python3_sitelib}/rhc_worker_playbook*.egg-info/
+%{python3_sitelib}/rhc_worker_playbook*.dist-info/
 %{_libdir}/rhc-worker-playbook/
 %{_datadir}/rhc-worker-playbook/ansible/collections/ansible_collections/
 %{_localstatedir}/log/rhc-worker-playbook/ansible/
@@ -108,8 +134,16 @@ mkdir -p %{buildroot}%{_localstatedir}/log/rhc-worker-playbook/ansible/
 %doc
 
 %changelog
+* Wed Feb 4 2026 Jeremy Crafts <jcrafts@redhat.com> - 0.1.14-1
+- Update rhc-worker-playbook to 0.1.14
+
+* Tue Jan 20 2026 Jeremy Crafts <jcrafts@redhat.com> - 0.1.13-5
+- Update rhc-worker-playbook to 0.1.13 (RHEL-137408)
+- Reduce size of rhc-worker-playbook messages (RHEL-142699)
+- Invoke rhc-playbook-verifier for playbook verification (RHEL-142700)
+
 * Wed Apr 23 2025 Joe VLcek <jvlcek@redhat.com> - 0.1.11-1
-- Update rhc-worker-playbook to 0.1.11 (RHEL-85006)
+- Update rhc-worker-playbook to 0.1.11 (RHEL-83189)
 
 * Fri Nov 15 2024 Joe VLcek <jvlcek@redhat.com> - 0.1.10-1
 - Update rhc-worker-playbook to 0.1.10 (RHEL-65236 RHEL-65239 RHEL-65242 RHEL-65245 RHEL-59702)
