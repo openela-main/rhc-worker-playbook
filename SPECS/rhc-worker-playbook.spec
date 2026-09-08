@@ -1,11 +1,12 @@
-%define debug_package %{nil}
+%define _debugsource_template %{nil}
 %define community_general_version 4.4.0
-%define ansible_posix_version 1.3.0
+# RHEL 8.10 has ansible-2.16.3, so ansible.posix-2.0.0 and up is acceptable
+%define ansible_posix_version 2.2.1
 
 Name:       rhc-worker-playbook
 Summary:    Red Hat connect worker for launching Ansible Runner
 Version:    0.1.8
-Release:    5%{?dist}
+Release:    7%{?dist}
 License:    GPLv2+
 Source:     rhc-worker-playbook-0.1.8.tar.gz
 Source1:    https://github.com/ansible-collections/community.general/archive/%{community_general_version}/ansible-collection-community-general-%{community_general_version}.tar.gz
@@ -24,7 +25,7 @@ ExclusiveArch: %{go_arches}
 %{?__python3:Requires: %{__python3}}
 Requires: insights-client
 Requires: python3dist(requests)
-Requires: ansible-core
+Requires: ansible-core >= 2.15
 BuildRequires: rhc
 BuildRequires: pkgconfig
 BuildRequires: python3-devel
@@ -41,10 +42,10 @@ Python-based worker for Red Hat connect, used to launch Ansible playbooks via An
 %prep
 %setup -q -a1 -a2 -n %{name}-%{version}
 
-%patch0001 -p1
-%patch0002 -p1
-%patch0003 -p1
-%patch0004 -p1
+%patch -P 0001 -p1
+%patch -P 0002 -p1
+%patch -P 0003 -p1
+%patch -P 0004 -p1
 
 pushd community.general-%{community_general_version}
 rm -vr .github .azure-pipelines
@@ -62,6 +63,8 @@ find -type f -name '.gitignore' -print -delete
 popd
 
 %build
+%define _lto_cflags %{nil}
+%set_build_flags
 export GRPC_PYTHON_BUILD_WITH_CYTHON=True
 export GRPC_PYTHON_BUILD_SYSTEM_OPENSSL=True
 export GRPC_PYTHON_BUILD_SYSTEM_ZLIB=True
@@ -112,6 +115,9 @@ mkdir -p %{buildroot}%{_localstatedir}/log/rhc-worker-playbook/ansible
 %doc
 
 %changelog
+* Wed Jul 8 2026 Jeremy Crafts <jcrafts@redhat.com> 0.1.8-6
+- Update ansible.posix to 2.2.1 (RHEL-183242)
+
 * Wed Nov 23 2022 Link Dupont <link@sub-pop.net> 0.1.8-5
 - Ensure _run_data is called on a thread (RHBZ#2142992)
 
