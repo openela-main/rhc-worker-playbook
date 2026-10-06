@@ -1,11 +1,11 @@
 %{?python_disable_dependency_generator}
 %define _debugsource_template %{nil}
-%define community_general_version 4.4.0
-%define ansible_posix_version 1.3.0
+%define community_general_version 9.5.13
+%define ansible_posix_version 1.5.4
 
 Name:       rhc-worker-playbook
 Version:    0.1.14
-Release:    1%{?dist}
+Release:    4%{?dist}
 Summary:    Python worker for Red Hat connector that launches Ansible Runner
 License:    GPLv2+
 URL:        https://github.com/redhatinsights/rhc-worker-playbook
@@ -13,13 +13,15 @@ Source0:    https://github.com/RedHatInsights/rhc-worker-playbook/releases/downl
 Source1:    https://github.com/ansible-collections/community.general/archive/%{community_general_version}/ansible-collection-community-general-%{community_general_version}.tar.gz
 Source2:    https://github.com/ansible-collections/ansible.posix/archive/%{ansible_posix_version}/ansible-collection-ansible-posix-%{ansible_posix_version}.tar.gz
 # ansible-runner dependencies
-Source3:    https://files.pythonhosted.org/packages/py3/a/ansible_runner/ansible_runner-2.1.1-py3-none-any.whl
+Source3:    https://files.pythonhosted.org/packages/py3/a/ansible_runner/ansible_runner-2.4.3-py3-none-any.whl
 Source4:    https://files.pythonhosted.org/packages/py3/p/python_daemon/python_daemon-3.1.2-py3-none-any.whl
 Source5:    https://files.pythonhosted.org/packages/py2.py3/l/lockfile/lockfile-0.12.2-py2.py3-none-any.whl
+Source6:    https://files.pythonhosted.org/packages/py3/i/importlib_metadata/importlib_metadata-6.2.1-py3-none-any.whl
+Source7:    https://files.pythonhosted.org/packages/py3/z/zipp/zipp-3.23.1-py3-none-any.whl
 # grpcio/protobuf sources
-Source6:   %pypi_source grpcio 1.55.3
-Source7:   %pypi_source grpcio-tools 1.48.2
-Source8:   %pypi_source protobuf 3.20.0
+Source8:    %pypi_source grpcio 1.55.3
+Source9:    %pypi_source grpcio-tools 1.48.2
+Source10:   %pypi_source protobuf 3.20.0
 
 Requires: python3.9
 Requires: rhc
@@ -33,6 +35,8 @@ Requires: python3.9dist(jsonschema)
 Requires: python3.9dist(pexpect)
 Requires: python3.9dist(pyyaml)
 Requires: python3.9dist(six)
+Requires(post): systemd
+Requires(postun): systemd
 BuildRequires: make
 BuildRequires: python3.9
 BuildRequires: python3.9-devel
@@ -87,9 +91,9 @@ rm -f rhc_worker_playbook/constants.py
 mkdir wheels
 
 # add ansible-runner and its dependencies
-cp %{SOURCE3} %{SOURCE4} %{SOURCE5} wheels
+cp %{SOURCE3} %{SOURCE4} %{SOURCE5} %{SOURCE6} %{SOURCE7} wheels
 # build rhc-worker-playbook wheel and build grpcio, protobuf from source
-%{python3} -m pip wheel --no-deps --wheel-dir=wheels . %{SOURCE6} %{SOURCE7} %{SOURCE8}
+%{python3} -m pip wheel --no-deps --wheel-dir=wheels . %{SOURCE8} %{SOURCE9} %{SOURCE10}
 touch wheels
 
 # Building the Ansible Collections
@@ -102,7 +106,7 @@ tar -cf %{_tmppath}/ansible-posix-%{ansible_posix_version}.tar.gz .
 popd
 
 %install
-%{make_install} PREFIX=%{_prefix} LIBDIR=%{_libdir} DEPENDENCY_WHEELS="wheels/ansible* wheels/grpcio* wheels/protobuf* wheels/python_daemon* wheels/lockfile*" PIP_INSTALL_EXTRA_ARGS="--no-deps"
+%{make_install} PREFIX=%{_prefix} LIBDIR=%{_libdir} DEPENDENCY_WHEELS="wheels/ansible* wheels/grpcio* wheels/protobuf* wheels/python_daemon* wheels/lockfile* wheels/importlib_metadata* wheels/zipp*" PIP_INSTALL_EXTRA_ARGS="--no-deps"
 
 # confirm Python dependencies are OK
 PYTHONPATH=%{buildroot}%{_libdir}/rhc-worker-playbook %{python3} -m pip check
@@ -131,9 +135,19 @@ mkdir -p %{buildroot}%{_localstatedir}/log/rhc-worker-playbook/ansible/
 %{_localstatedir}/log/rhc-worker-playbook/ansible/
 %config(noreplace) %{_sysconfdir}/rhc/workers/rhc-worker-playbook.toml
 
-%doc
+%post
+if systemctl --quiet is-active rhcd.service; then systemctl restart rhcd.service; else true; fi
+
+%postun
+if systemctl --quiet is-active rhcd.service; then systemctl restart rhcd.service; else true; fi
 
 %changelog
+* Wed Aug 12 2026 Jeremy Crafts <jcrafts@redhat.com> - 0.1.14-3
+- Restart rhcd on install and uninstall
+
+* Mon Jul 20 2026 Jeremy Crafts <jcrafts@redhat.com> - 0.1.14-2
+- Update Ansible dependencies (RHEL-212642)
+
 * Wed Feb 4 2026 Jeremy Crafts <jcrafts@redhat.com> - 0.1.14-1
 - Update rhc-worker-playbook to 0.1.14
 
