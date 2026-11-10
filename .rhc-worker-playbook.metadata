@@ -1,6 +1,6 @@
+83ce8f1252c92bf323d518c62ca1dfb6511e96d2a91032fa45c48a4ffc3f4a43 SOURCES/ansible-collection-ansible-posix-1.5.4.tar.gz
+dba2aed5c0701c759bf456d6edc39e34e8fbd2d10364407be13fd4c80ea2c672 SOURCES/ansible-collection-community-general-9.5.13.tar.gz
 92383547019e75474d218bd0a34604a8ded79f181f5d40b2af79706e8d6ec4f2 SOURCES/grpcio-1.55.3.tar.gz
 8902a035708555cddbd61b5467cea127484362decc52de03f061a1a520fe90cd SOURCES/grpcio-tools-1.48.2.tar.gz
 71b2c3d1cd26ed1ec7c8196834143258b2ad7f444efff26fdc366c6f5e752702 SOURCES/protobuf-3.20.0.tar.gz
 a3d312e94f55f95233b25a8d7eaf2c1303aa6359253d606cebd804e15e1b1450 SOURCES/rhc-worker-playbook-0.1.14.tar.gz
-83ce8f1252c92bf323d518c62ca1dfb6511e96d2a91032fa45c48a4ffc3f4a43 SOURCES/ansible-collection-ansible-posix-1.5.4.tar.gz
-dba2aed5c0701c759bf456d6edc39e34e8fbd2d10364407be13fd4c80ea2c672 SOURCES/ansible-collection-community-general-9.5.13.tar.gz

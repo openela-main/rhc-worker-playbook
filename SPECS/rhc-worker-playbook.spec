@@ -146,7 +146,7 @@ if systemctl --quiet is-active rhcd.service; then systemctl restart rhcd.service
 - Restart rhcd on install and uninstall
 
 * Mon Jul 20 2026 Jeremy Crafts <jcrafts@redhat.com> - 0.1.14-2
-- Update Ansible dependencies (RHEL-212642)
+- Update Ansible dependencies (RHEL-184114)
 
 * Wed Feb 4 2026 Jeremy Crafts <jcrafts@redhat.com> - 0.1.14-1
 - Update rhc-worker-playbook to 0.1.14
